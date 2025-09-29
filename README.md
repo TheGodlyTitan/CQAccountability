@@ -26,7 +26,6 @@ You have two options to run the Accountability Email Formatter:
   > "Windows protected your PC – Unknown Publisher"
 - This happens because the `.exe` is not code-signed. It is safe to run if downloaded from this repository.  
 - To continue: click **More info → Run anyway**.
-- (Optional) Advanced users may run the app with a [self-signed certificate](https://learn.microsoft.com/en-us/windows/win32/seccrypto/signed-code) if they wish to remove the "Unknown publisher" message.
 
 ### 2. Run from Source
 - Clone or download this repo.
