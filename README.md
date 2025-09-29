@@ -21,7 +21,7 @@ The CQ Accountability Email Generator is a simple application, built with Python
 You have two options to run the Accountability Email Formatter:
 
 ### 1. Pre-Built Executables
-- All compiled `.exe` releases are available [here.]((https://github.com/TheGodlyTitan/CQAccountability/releases)
+- All compiled `.exe` releases are available [here.](https://github.com/TheGodlyTitan/CQAccountability/releases)
 - When running for the first time on Windows, **Microsoft Defender SmartScreen** may warn:
   > "Windows protected your PC – Unknown Publisher"
 - This happens because the `.exe` is not code-signed. It is safe to run if downloaded from this repository.  
