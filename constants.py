@@ -34,6 +34,7 @@ class Constants:
     # Rank options for personnel selection
     # This includes Space Force E-1 to E-4 equivalencies (Winters)
     rank_options = [
+        "", # Blank option
         "E-1 (AB)",
         "E-2 (Amn)",
         "E-3 (A1C)",
@@ -46,6 +47,7 @@ class Constants:
     
     # List of all MTLs for notes section
     on_call_mtls = [
+        "", # Blank option
         "TSgt Culpepper",
         "TSgt Brown",
         "TSgt McDonald",
@@ -73,7 +75,7 @@ class Constants:
     # 338th - Dark Knights - U.S. Air Force
     # 333rd - Mad Ducks    - U.S. Air Force
     # 533rd - Centurions   - U.S. Space Force
-    branch_options = ["U.S Air Force", "U.S Space Force"]
+    branch_options = ["U.S. Air Force", "U.S. Space Force"]
     squadron_options = ["338th", "333rd", "533rd"]
     
     # Job titles for USAF and USSF
