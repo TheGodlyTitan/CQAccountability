@@ -9,8 +9,8 @@ The CQ Accountability Email Generator is a simple application, built with Python
 - **Manor Selection:** Easily select between Winters or Fosters manor.
 - **CQ Team:** Dedicated fields for all required CQ roles
 - **Lates Tracking:** Dynamic entry sections for:
-    - **Red-Card Lates:**
-    - **Standard Lates:**
+    - **Red-Card Lates**
+    - **Standard Lates**
 - **Automatic MTL Lookup:** Automatically determines the appropriate Bay MTL for accountability based on the entered room number and selected manor.
 - **Notes Section:** Fields for CAC scanner status, On-Call MTL, and additional shift notes.
 - **Required Signature Block:** Enforces input for all professional military signature fields.
