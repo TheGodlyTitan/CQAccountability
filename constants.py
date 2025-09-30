@@ -5,8 +5,7 @@ class Constants:
     
     Notes
     -----
-    Missing USSF information as of 09/28/2025
-        - Job Titles
+    Remove all USSF Signature Options.
         
     Missing MTL Assignments (D-Bays)
         - FD2 
@@ -34,7 +33,6 @@ class Constants:
     # Rank options for personnel selection
     # This includes Space Force E-1 to E-4 equivalencies (Winters)
     rank_options = [
-        "", # Blank option
         "E-1 (AB)",
         "E-2 (Amn)",
         "E-3 (A1C)",
@@ -47,7 +45,6 @@ class Constants:
     
     # List of all MTLs for notes section
     on_call_mtls = [
-        "", # Blank option
         "TSgt Culpepper",
         "TSgt Brown",
         "TSgt McDonald",
@@ -79,12 +76,10 @@ class Constants:
     squadron_options = ["338th", "333rd", "533rd"]
     
     # Job titles for USAF and USSF
-    # Currently missing USSF job titles
     job_options = [
         "Network System Operations",
         "Radio Frequency Transmission",
         "Cyber Warfare Operations",
-        "Not Available",
     ]
 
     # MTL assignments by bay and floor
