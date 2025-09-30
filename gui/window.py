@@ -19,7 +19,7 @@ def create_main_window() -> tk.Tk:
     window = tk.Tk()
     window.title(TITLE)
     window.state('zoomed')  # Start maximized
-    window.minsize(800, 600)  # Minimum size to prevent too small windows
+    window.minsize(1200, 600)  # Minimum size to prevent too small windows
     
     try:
         icon_path = resource_path(ICON_PATH)
