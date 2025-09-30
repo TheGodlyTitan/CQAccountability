@@ -72,8 +72,8 @@ def create_dynamic_entry_section(parent: tk.Widget, title: str, widget_factory: 
     frame.pack(padx=10, pady=10, fill="both", expand=True)
     container = ttk.Frame(frame)
     container.pack(fill="x")
+    
     entries_list = []
-
     rows = 0
     
     def add_new_row():
@@ -110,8 +110,8 @@ def create_red_card_late_entry_widgets(parent: tk.Widget) -> dict:
     """Factory for widgets in a red card late entry row."""
     person_widgets = create_person_entry_fields(parent)
     other_widgets = {
-        "Room": tk.Entry(parent, width=10),
-        "Time": create_combobox(parent, tk.StringVar(parent), ['0900', '1200', '1500', '1800', '2100'], 7),
+        "Room": tk.Entry(parent, width=6),
+        "Time": create_combobox(parent, tk.StringVar(parent), ['0900', '1200', '1500', '1800', '2100'], 5),
         "Type": create_combobox(parent, tk.StringVar(parent), Constants.redcard_late_types, 8),
         "Reason": tk.Entry(parent, width=20)
     }
@@ -122,8 +122,8 @@ def create_late_entry_widgets(parent: tk.Widget) -> dict:
     person_widgets = create_person_entry_fields(parent)
     type_var = tk.StringVar(parent, value='Late Turn-in')
     other_widgets = {
-        "Room": tk.Entry(parent, width=10),
-        "Time": create_combobox(parent, tk.StringVar(parent), ['0000', '2200'], 7),
+        "Room": tk.Entry(parent, width=6),
+        "Time": create_combobox(parent, tk.StringVar(parent), ['0000', '2200'], 5),
         "Reason": tk.Entry(parent, width=20)
     }
     return {**person_widgets, **other_widgets}
