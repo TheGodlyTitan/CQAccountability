@@ -31,10 +31,10 @@ def create_person_entry_fields(parent: tk.Widget) -> dict[str, tk.Widget]:
     log.debug(f"Creating person entry fields in {parent.winfo_class()}.")
     rank_var = tk.StringVar(parent)
     return {
-        "Rank": create_combobox(parent, rank_var, Constants.rank_options, 12),
-        "Last": tk.Entry(parent, width=20),
-        "First": tk.Entry(parent, width=20),
-        "MI": tk.Entry(parent, width=3)
+        "Rank": create_combobox(parent, rank_var, Constants.rank_options, 8),
+        "Last": tk.Entry(parent, width=18),
+        "First": tk.Entry(parent, width=16),
+        "MI": tk.Entry(parent, width=2)
     }
 
 
