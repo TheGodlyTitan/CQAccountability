@@ -10,7 +10,20 @@ log = logging.getLogger('app.widgets')
 def create_combobox(parent: tk.Widget, variable: tk.StringVar, values: list[str], width: int) -> ttk.Combobox:
     """Generic factory for creating a readonly ttk.Combobox."""
     log.debug(f"Creating combobox in {parent.winfo_class()} with {len(values)} values.")
-    return ttk.Combobox(parent, textvariable=variable, values=values, state="readonly", width=width)
+    
+    # Automatic Blank Value Addition
+    new_values = list(values) 
+    if not new_values or new_values[0] != '':
+        new_values.insert(0, '')
+    variable.set('')
+    
+    return ttk.Combobox(
+        parent, 
+        textvariable=variable, 
+        values=new_values, 
+        state="readonly", 
+        width=width
+    )
 
 
 def create_person_entry_fields(parent: tk.Widget) -> dict[str, tk.Widget]:
