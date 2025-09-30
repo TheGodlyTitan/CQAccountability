@@ -6,7 +6,6 @@ from utils import resource_path
 
 
 TITLE = "CQ Accountability Email Generator"
-GEOMETRY = "1200x600"
 ICON_PATH = "assets/app_icon.png"
 
 
@@ -14,14 +13,13 @@ log = logging.getLogger('app.window')
 
 
 def create_main_window() -> tk.Tk:
-    """
-    Creates and configures the main application window.
-    """
+    """Creates and configures the main application window."""
     log.debug(f"Creating main window with title: '{TITLE}'")
     
     window = tk.Tk()
     window.title(TITLE)
-    window.geometry(GEOMETRY)
+    window.state('zoomed')  # Start maximized
+    window.minsize(800, 600)  # Minimum size to prevent too small windows
     
     try:
         icon_path = resource_path(ICON_PATH)
@@ -33,7 +31,7 @@ def create_main_window() -> tk.Tk:
         log.warning(f"Failed to set window icon: {e}")
         
     return window
-
+    
 def setup_scrollable_area(parent: tk.Widget) -> tuple[ttk.Frame, tk.Canvas]:
     """Creates a scrollable area and returns the content frame and canvas."""
     log.debug("Setting up scrollable area.")
