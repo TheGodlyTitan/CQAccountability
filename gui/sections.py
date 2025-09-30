@@ -128,8 +128,16 @@ def create_late_entry_widgets(parent: tk.Widget) -> dict:
     }
     return {**person_widgets, **other_widgets}
 
-def create_notes_section(parent: tk.Widget) -> tuple:
-    """Creates the notes section UI."""
+def create_notes_section(parent: tk.Widget) -> tuple[tk.BooleanVar, tk.StringVar, list]:
+    """
+    Creates the notes section UI.
+    
+    Specifications
+    --------------
+    - Checkbox for "CAC Scanner Unavailable"
+    - Combobox for "On-Call MTL" with predefined options
+    - Dynamic list of additional notes fields with add/remove functionality
+    """
     log.debug("Creating notes section.")
     frame = tk.LabelFrame(parent, text="Notes", padx=10, pady=10)
     frame.pack(padx=10, pady=10, fill="both", expand=True)
@@ -144,22 +152,42 @@ def create_notes_section(parent: tk.Widget) -> tuple:
 
     notes_container = ttk.Frame(frame)
     notes_container.grid(row=2, column=0, columnspan=2, sticky="ew", padx=5, pady=(10, 0))
+    
     notes_entries = []
-    note_rows = 0
+    rows = 0
     
     def add_note_field():
-        nonlocal note_rows
-        note_rows += 1
+        log.debug("Adding new note field.")
+        nonlocal rows
+        rows += 1
         row = ttk.Frame(notes_container)
-        row.pack(fill="x", expand=True, pady=2)
+        row.pack(fill="x", pady=2)
+        
         ttk.Label(row, text="Note:").pack(side="left", padx=(0, 5))
         entry = ttk.Entry(row)
         entry.pack(side="left", fill="x", expand=True)
         notes_entries.append(entry)
+    
+    def remove_last_note_field():
+        nonlocal rows 
+        if rows == 1:
+            return
+        if notes_entries:
+            log.debug("Removing last note field.")
+            last_entry = notes_entries.pop()
+            last_entry.master.destroy()
+            notes_container.update_idletasks()
+    
+    button_row = ttk.Frame(frame)
+    button_row.grid(row=3, column=0, columnspan=2, sticky="w", padx=5, pady=(5, 0))
 
-    ttk.Button(frame, text="Add Note", command=add_note_field).grid(row=3, column=0, sticky="w", padx=5, pady=5)
+    add_button = ttk.Button(button_row, text="Add Note", command=add_note_field)
+    add_button.pack(side="left", padx=5)
+
+    remove_button = ttk.Button(button_row, text="Remove Note", command=remove_last_note_field)
+    remove_button.pack(side="left", padx=5)
+
     add_note_field()
-
     return cac_var, mtl_var, notes_entries
 
 def create_signature_section(parent: tk.Widget) -> dict:
