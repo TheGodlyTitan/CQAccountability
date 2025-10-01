@@ -38,8 +38,11 @@ CQ_ROLE_ORDER = [
     "CQ Runner"
 ]
 
+REQUIRED_AL_ROLES = [
+    "AL Cards"
+]
+
 REQUIRED_CQ_ROLES = [
-    "AL Cards", 
     "CQ Lead", 
     "CQ Door Guard"
 ]
@@ -47,7 +50,6 @@ REQUIRED_CQ_ROLES = [
 REQUIRE_SIGNATURE_FIELDS = [
     "Rank", 
     "Last", "First", "MI", 
-    "Branch", 
     "AFSC/Job", 
     "Squadron"
 ]
@@ -130,10 +132,11 @@ def _get_person_data(entries: dict, role_context: str, is_late_entry: bool) -> d
 def get_form_data(ui_elements: dict) -> dict:
     """Gathers all data from the UI widgets into a dictionary and validates inputs."""
     log.debug("Gathering form data.")
-    data = {"cq_team": {}, "red_card_lates": [], "lates": [], "manor": ui_elements["manor"].get()}
+    data = {"al_team": {}, "cq_team": {}, "red_card_lates": [], "lates": [], "manor": ui_elements["manor"].get()}
     errors = []
 
     # Unpack UI elements for clarity
+    al_members = ui_elements["al_members"]
     cq_members = ui_elements["cq_members"]
     red_card_lates = ui_elements["red_card_lates"]
     lates = ui_elements["lates"]
@@ -144,7 +147,19 @@ def get_form_data(ui_elements: dict) -> dict:
     if not data["manor"]:
         errors.append("Please select a Manor (Winters or Fosters).")
 
-    # 1. CQ Team
+    # 1. AL Team
+    for role, entries in al_members.items():
+        try:
+            if person_data := _get_person_data(entries, role, False):
+                data["al_team"][role] = person_data
+        except ValueError as e:
+            errors.append(str(e))
+    
+    for role in REQUIRED_AL_ROLES:
+        if role not in data["al_team"]:
+            errors.append(f"Required: Please fill out **{role}**.")
+
+    # 2. CQ Team
     for role, entries in cq_members.items():
         try:
             if role == "CQ Runner":
@@ -235,6 +250,95 @@ def get_form_data(ui_elements: dict) -> dict:
     return data
 
 
+def get_form_data_for_preview(ui_elements: dict) -> dict:
+    """
+    Gathers form data for preview purposes, ignoring validation errors.
+    Returns partial data even if some fields are incomplete.
+    """
+    log.debug("Gathering form data for preview.")
+    data = {"al_team": {}, "cq_team": {}, "red_card_lates": [], "lates": [], "manor": ui_elements["manor"].get()}
+
+    # Unpack UI elements for clarity
+    al_members = ui_elements["al_members"]
+    cq_members = ui_elements["cq_members"]
+    red_card_lates = ui_elements["red_card_lates"]
+    lates = ui_elements["lates"]
+    notes_vars = ui_elements["notes"]
+    signature = ui_elements["signature"]
+    
+    # 1. AL Team - ignore validation errors
+    for role, entries in al_members.items():
+        try:
+            if person_data := _get_person_data(entries, role, False):
+                data["al_team"][role] = person_data
+        except:
+            pass
+
+    # 2. CQ Team - ignore validation errors
+    for role, entries in cq_members.items():
+        try:
+            if role == "CQ Runner":
+                runner_data = []
+                for runner_set in entries:
+                    try:
+                        if person_data := _get_person_data(runner_set, "CQ Runner", False):
+                            runner_data.append(person_data)
+                    except:
+                        pass
+                if runner_data:
+                    data["cq_team"][role] = runner_data
+            else:
+                try:
+                    if person_data := _get_person_data(entries, role, False):
+                        data["cq_team"][role] = person_data
+                except:
+                    pass
+        except:
+            pass
+
+    # 2. Lates Sections - ignore validation errors
+    for key, entries in [("red_card_lates", red_card_lates), ("lates", lates)]:
+        is_red_card = (key == "red_card_lates")
+        
+        for entry_set in entries:
+            try:
+                if person_data := _get_person_data(entry_set, "", is_late_entry=True):
+                    late_data = person_data.copy()
+                    
+                    # Get room, time, reason - use what's available
+                    raw_room = entry_set["Room"].get()
+                    if raw_room:
+                        try:
+                            late_data["room"] = _validate_room_number(raw_room)
+                        except:
+                            late_data["room"] = raw_room  # Use raw value if validation fails
+                    else:
+                        late_data["room"] = ""
+                    
+                    late_data["time"] = entry_set["Time"].get()
+                    late_data["reason"] = entry_set["Reason"].get().strip()
+                    
+                    if is_red_card:
+                        late_data["type"] = entry_set["Type"].get()
+                    else:
+                        late_data["type"] = ""
+                        
+                    data[key].append(late_data)
+            except:
+                pass
+
+    # 3. Notes and Signature
+    data["notes"] = {
+        "cac_scanner_unavailable": notes_vars["cac_scanner"].get(),
+        "on_call_mtl": notes_vars["on_call_mtl"].get(),
+        "additional_notes": [note.get().strip() for note in notes_vars["additional_notes"] if note.get().strip()],
+    }
+    
+    data["signature"] = {key: widget.get().strip() for key, widget in signature.items()}
+
+    return data
+
+
 def _format_person(person_data: dict) -> str | None:
     """Formats a person's data into a 'Rank Last, First MI' string."""
     if not person_data or not person_data.get("rank"):
@@ -251,14 +355,33 @@ def format_email_body(data: dict) -> str:
     log.debug("Formatting email body.")
     parts = []
     
-    # CQ Team
+    # Combined Team Display (AL Team + CQ Team in order)
     for role in CQ_ROLE_ORDER:
         if role is None:
             # Add a separator only if there's content and it doesn't already end with a separator
             if parts and parts[-1] != "":
                 parts.append("")
             continue
-        role_data = data["cq_team"].get(role)
+        
+        # Check AL team first, then CQ team
+        role_data = data["al_team"].get(role) or data["cq_team"].get(role)
+        
+        # Special handling for roles that should always appear even if empty
+        if role in ["AL Cards", "CQ Lead", "CQ Door Guard", "CQ Runner"]:
+            display_role = role.split('(')[0].strip()
+            if role_data:
+                if isinstance(role_data, list):
+                    for person in role_data:
+                        if person_str := _format_person(person):
+                            parts.append(f"{display_role}: {person_str}")
+                elif person_str := _format_person(role_data):
+                    parts.append(f"{display_role}: {person_str}")
+                else:
+                    parts.append(f"{display_role}:")
+            else:
+                parts.append(f"{display_role}:")
+            continue
+        
         if not role_data:
             continue
         
@@ -279,7 +402,16 @@ def format_email_body(data: dict) -> str:
         for entry in late_entries:
             person_str = _format_person(entry)
             bay_mtl = get_mtl_from_room(manor, entry['room'])
-            parts.append(f"- {person_str} - {entry['room']} - {bay_mtl} - Missed {entry['time']} {entry['type']} - {entry['reason']}")
+            
+            # Format the type field - change "Both" to "Sign-in & Turn-in"
+            type_text = entry['type']
+            if type_text == "Both":
+                type_text = "Sign-in & Turn-in"
+            
+            # Handle empty reason
+            reason = entry['reason'].strip() if entry['reason'] else "No reason provided"
+            
+            parts.append(f"- {person_str} - {entry['room']} - {bay_mtl} - Missed {entry['time']} {type_text} - {reason}")
     else:
         parts.append("- N/A")
 
@@ -293,11 +425,16 @@ def format_email_body(data: dict) -> str:
             # Type is guaranteed to be an empty string for standard lates, so we omit it from the output
             # 'type_info' is only included if it has a value (e.g., from Red-Card Lates in the future)
             type_info = f" {entry['type']}" if entry.get('type') else ""
-            parts.append(f"- {person_str} - {entry['room']} - {bay_mtl} - Missed {entry['time']}{type_info} - {entry['reason']}")
+            
+            # Handle empty reason
+            reason = entry['reason'].strip() if entry['reason'] else "No reason provided"
+            
+            parts.append(f"- {person_str} - {entry['room']} - {bay_mtl} - Missed {entry['time']}{type_info} - {reason}")
     else:
         parts.append("- N/A")
         
-    # Notes
+    # Notes (MUST always be present, showing - N/A if empty)
+    parts.append("\nNotes:")
     notes_data = data["notes"]
     notes_content = []
     if notes_data["cac_scanner_unavailable"]:
@@ -305,9 +442,11 @@ def format_email_body(data: dict) -> str:
     if on_call_mtl := notes_data["on_call_mtl"]:
         notes_content.append(f"- On-Call MTL: {on_call_mtl}")
     notes_content.extend([f"- {note}" for note in notes_data["additional_notes"]])
+    
     if notes_content:
-        parts.append("\nNotes:")
         parts.extend(notes_content)
+    else:
+        parts.append("- N/A")
 
     # Signature
     sig = data["signature"]
@@ -316,7 +455,7 @@ def format_email_body(data: dict) -> str:
         rank_short = RANK_MAPPINGS.get(sig["Rank"], "")
         name_line = f"{rank_short} {sig['Last']}, {sig['First']}"
         if sig['MI']: name_line += f" {sig['MI']}"
-        name_line += f", {BRANCH_MAPPINGS.get(sig['Branch'], sig['Branch'])}"
+        # Remove branch reference since it's no longer an input option
         parts.append(name_line)
         
         afsc_job = sig["AFSC/Job"]
@@ -328,5 +467,5 @@ def format_email_body(data: dict) -> str:
         parts.append("Keesler AFB, MS")
 
     final_body = "\n".join(parts)
-    log.info("Email body formatted successfully.")
+    log.debug("Email body formatted successfully.")
     return final_body
