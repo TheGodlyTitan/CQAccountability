@@ -11,6 +11,35 @@ from logic.processing import (
 log = logging.getLogger('app.actions')
 
 
+def check_email_action(main_window: tk.Tk, ui_elements: dict):
+    """Validates the form and shows either errors or success message with option to generate."""
+    log.info("Check Email action triggered.")
+    
+    try:
+        form_data = get_form_data(ui_elements)
+        # If we get here, validation passed
+        log.info("Validation passed successfully.")
+        
+        # Show success message with option to generate
+        result = messagebox.askyesno(
+            "Validation Success",
+            "All required fields are filled out correctly!\n\nWould you like to generate the email now?",
+            icon="question"
+        )
+        
+        if result:  # User clicked "Yes"
+            email_body = format_email_body(form_data)
+            display_result(main_window, email_body)
+        
+    except ValidationException as e:
+        log.warning("Validation failed, showing error message.")
+        error_message = "\n\n".join(e.errors)
+        messagebox.showerror(
+            "Validation Errors",
+            f"Please correct the following errors:\n\n{error_message}"
+        )
+        
+        
 def display_result(parent_window: tk.Tk, content: str):
     """Creates a new window to display the generated email body."""
     log.debug("Displaying result window.")
@@ -31,6 +60,7 @@ def display_result(parent_window: tk.Tk, content: str):
 
     copy_button = ttk.Button(result_window, text="Copy to Clipboard", command=copy_to_clipboard)
     copy_button.pack(pady=5)
+
 
 def generate_email_action(main_window: tk.Tk, ui_elements: dict):
     """Orchestrates the process of generating and displaying the email."""
