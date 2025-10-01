@@ -172,7 +172,7 @@ def create_charge_quarters_section(parent: tk.Widget, roles: list[str]) -> dict:
                 any_widget.master.destroy()
 
         button_frame = ttk.Frame(role_frame)
-        button_frame.pack(fill="x", pady=(5, 0))
+        button_frame.pack(fill="x", pady=(5, 5))  # Added 5px bottom padding
 
         add_button = ttk.Button(button_frame, text=f"Add {role.split()[-1]}", command=add_new_person_row)
         add_button.pack(side="left", padx=5)
