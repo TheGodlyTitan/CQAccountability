@@ -45,7 +45,7 @@ def create_red_card_late_entry_widgets(parent: tk.Widget, bottom_parent: tk.Widg
     }
     
     reason_frame = ttk.Frame(bottom_parent)
-    reason_frame.pack(fill='x', padx=5, pady=(0, 2))
+    reason_frame.pack(fill='x', padx=5, pady=(0, 9))
     ttk.Label(reason_frame, text="Reason:", width=8).pack(side="left", padx=(0, 2))
     reason_entry = tk.Entry(reason_frame)
     reason_entry.pack(side="left", fill="x", expand=True)
@@ -61,7 +61,7 @@ def create_late_entry_widgets(parent: tk.Widget, bottom_parent: tk.Widget) -> di
     }
 
     reason_frame = ttk.Frame(bottom_parent)
-    reason_frame.pack(fill='x', padx=5, pady=(0, 2))
+    reason_frame.pack(fill='x', padx=5, pady=(0, 9))
     ttk.Label(reason_frame, text="Reason:", width=8).pack(side="left", padx=(0, 2))
     reason_entry = tk.Entry(reason_frame)
     reason_entry.pack(side="left", fill="x", expand=True)
