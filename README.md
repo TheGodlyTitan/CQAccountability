@@ -34,3 +34,6 @@ pip install git+https://github.com/TheGodlyTitan/CQAccountability.git
 ```
 - Install Python 3.10+.
 - Run `app.py`
+
+You can verify the source code in this repo matches the .exe releases.
+The .exe is built with `PyInstaller` from app.py.
