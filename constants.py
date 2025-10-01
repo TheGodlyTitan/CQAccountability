@@ -19,12 +19,16 @@ class Constants:
         "Fosters",
     ]
     
-    # Team roles for CQ team section
-    cq_roles = [
+    # AL Team roles
+    al_roles = [
         "ALD (Weekends Only)", 
         "ALD Shadow (Weekends Only)", 
         "AL Cards", 
-        "AL Cards Shadow", 
+        "AL Cards Shadow"
+    ]
+    
+    # CQ Team roles  
+    cq_roles = [
         "CQ Lead", 
         "CQ Door Guard", 
         "CQ Runner"
@@ -71,8 +75,7 @@ class Constants:
     
     # 338th - Dark Knights - U.S. Air Force
     # 333rd - Mad Ducks    - U.S. Air Force
-    # 533rd - Centurions   - U.S. Space Force
-    branch_options = ["U.S. Air Force", "U.S. Space Force"]
+    # 533rd - Centurions 
     squadron_options = ["338th", "333rd", "533rd"]
     
     # Job titles for USAF and USSF
