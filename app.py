@@ -56,21 +56,43 @@ def main():
     # Set up scrollable area for left panel
     scrollable_frame, _ = setup_scrollable_area(left_panel)
 
+    # 5. Create check email callback function
+    def check_email_callback():
+        check_email_action(window, ui_elements)
+
+    # 6. Create email preview section with check email button
+    preview_text_widget, line_numbers_widget = create_email_preview_section(right_panel, check_email_callback)
+    
     # Define update_preview early so it can be passed as a callback
     def update_preview():
         try:
             form_data = get_form_data_for_preview(ui_elements)
             email_body = format_email_body(form_data)
+            
+            # Update main content
             preview_text_widget.config(state="normal")
             preview_text_widget.delete("1.0", tk.END)
             preview_text_widget.insert("1.0", email_body)
             preview_text_widget.config(state="disabled")
+
+            # Update line numbers
+            line_count = email_body.count('\n') + 1
+            line_numbers_text = "\n".join(str(i) for i in range(1, line_count + 1))
+            line_numbers_widget.config(state="normal")
+            line_numbers_widget.delete("1.0", tk.END)
+            line_numbers_widget.insert("1.0", line_numbers_text)
+            line_numbers_widget.config(state="disabled")
+
         except ValidationException:
             # Don't show errors in preview, just show incomplete data
             preview_text_widget.config(state="normal")
             preview_text_widget.delete("1.0", tk.END)
             preview_text_widget.insert("1.0", "Fill out required fields to see email preview...")
             preview_text_widget.config(state="disabled")
+            # Clear line numbers
+            line_numbers_widget.config(state="normal")
+            line_numbers_widget.delete("1.0", tk.END)
+            line_numbers_widget.config(state="disabled")
         except Exception as e:
             log.debug(f"Preview update error: {e}")
 
@@ -115,13 +137,6 @@ def main():
         },
         "signature": signature_entries,
     }
-
-    # 5. Create check email callback function
-    def check_email_callback():
-        check_email_action(window, ui_elements)
-
-    # 6. Create email preview section with check email button
-    preview_text_widget = create_email_preview_section(right_panel, check_email_callback)
     
     # 7. Set up live preview update function (already defined above)
     
