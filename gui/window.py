@@ -31,7 +31,7 @@ def create_main_window() -> tk.Tk:
         log.warning(f"Failed to set window icon: {e}")
         
     return window
-    
+
 def setup_scrollable_area(parent: tk.Widget) -> tuple[ttk.Frame, tk.Canvas]:
     """Creates a scrollable area and returns the content frame and canvas."""
     log.debug("Setting up scrollable area.")
