@@ -1,42 +1,85 @@
 import tkinter as tk
 from tkinter import ttk
-
 from constants import Constants
 from utils import setup_logging
 from gui.window import (
-  create_main_window,
-  setup_scrollable_area
+    create_main_window, 
+    setup_scrollable_area,
 )
 from gui.sections import (
-  create_manor_selector, 
-  create_cq_team_section, 
-  create_dynamic_entry_section,
-  create_red_card_late_entry_widgets, 
-  create_late_entry_widgets,
-  create_notes_section, 
-  create_signature_section
+    create_manor_section,
+    create_airman_leaders_section,
+    create_charge_quarters_section, 
+    create_dynamic_entry_section,
+    create_notes_section, 
+    create_signature_section, 
+    create_email_preview_section,
 )
-from gui.widgets import layout_widgets_in_grid
-from logic.actions import generate_email_action
+from gui.widgets import (
+    layout_widgets_in_grid, 
+    create_red_card_late_entry_widgets, 
+    create_late_entry_widgets
+)
+from logic.processing import (
+    format_email_body, 
+    get_form_data_for_preview, 
+    ValidationException
+)
+from logic.actions import check_email_action
 
 
 log = setup_logging()
 
 
 def main():
-    """
-    Main function to build the UI and run the application.
-    """
+    """Main function to build the UI and run the application."""
     log.info("Application starting up...")
     
-    # 1. Create the main window and scrollable area
+    # 1. Create the main window
     window = create_main_window()
-    scrollable_frame, _ = setup_scrollable_area(window) 
-
-    # 2. Build UI sections and collect widget references
-    manor_var = create_manor_selector(scrollable_frame, Constants.manor_options)
     
-    cq_members_entries = create_cq_team_section(scrollable_frame, Constants.cq_roles)
+    # 2. Create main container with two panels
+    main_container = ttk.Frame(window)
+    main_container.pack(fill="both", expand=True, padx=10, pady=10)
+    main_container.grid_columnconfigure(0, weight=3) # Give more weight to the left panel
+    main_container.grid_columnconfigure(1, weight=1) # Smaller preview panel
+    main_container.grid_rowconfigure(0, weight=1)
+    
+    # Left panel for inputs
+    left_panel = ttk.Frame(main_container)
+    left_panel.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
+    
+    # Right panel for email preview
+    right_panel = ttk.Frame(main_container)
+    right_panel.grid(row=0, column=1, sticky="nsew", padx=(5, 0))
+    
+    # Set up scrollable area for left panel
+    scrollable_frame, _ = setup_scrollable_area(left_panel)
+
+    # Define update_preview early so it can be passed as a callback
+    def update_preview():
+        try:
+            form_data = get_form_data_for_preview(ui_elements)
+            email_body = format_email_body(form_data)
+            preview_text_widget.config(state="normal")
+            preview_text_widget.delete("1.0", tk.END)
+            preview_text_widget.insert("1.0", email_body)
+            preview_text_widget.config(state="disabled")
+        except ValidationException:
+            # Don't show errors in preview, just show incomplete data
+            preview_text_widget.config(state="normal")
+            preview_text_widget.delete("1.0", tk.END)
+            preview_text_widget.insert("1.0", "Fill out required fields to see email preview...")
+            preview_text_widget.config(state="disabled")
+        except Exception as e:
+            log.debug(f"Preview update error: {e}")
+
+    # 3. Build UI sections and collect widget references
+    manor_var = create_manor_section(scrollable_frame, Constants.manor_options)
+    
+    al_members_entries = create_airman_leaders_section(scrollable_frame, Constants.al_roles)
+    
+    cq_members_entries = create_charge_quarters_section(scrollable_frame, Constants.cq_roles)
     
     red_card_lates_entries = create_dynamic_entry_section(
         parent=scrollable_frame, 
@@ -54,13 +97,14 @@ def main():
         add_button_text="Add Late"
     )
 
-    cac_scanner_var, mtl_var, notes_entries = create_notes_section(scrollable_frame)
+    cac_scanner_var, mtl_var, notes_entries = create_notes_section(scrollable_frame, update_preview)
     
     signature_entries = create_signature_section(scrollable_frame)
 
-    # 3. Store references to all UI elements for the action function
+    # 4. Store references to all UI elements
     ui_elements = {
         "manor": manor_var,
+        "al_members": al_members_entries,
         "cq_members": cq_members_entries,
         "red_card_lates": red_card_lates_entries,
         "lates": lates_entries,
@@ -72,18 +116,48 @@ def main():
         "signature": signature_entries,
     }
 
-    # 4. Create the main action button
-    generate_button_frame = ttk.Frame(window)
-    generate_button_frame.pack(side="bottom", fill="x", pady=10, padx=10)
-    
-    generate_button = ttk.Button(
-        generate_button_frame,
-        text="Generate Email",
-        command=lambda: generate_email_action(window, ui_elements)
-    )
-    generate_button.pack()
+    # 5. Create check email callback function
+    def check_email_callback():
+        check_email_action(window, ui_elements)
 
-    # 5. Start the application
+    # 6. Create email preview section with check email button
+    preview_text_widget = create_email_preview_section(right_panel, check_email_callback)
+    
+    # 7. Set up live preview update function (already defined above)
+    
+    # 8. Bind update function to all relevant widgets
+    def bind_update_events(widget_dict):
+        """Recursively bind update events to all input widgets."""
+        for key, value in widget_dict.items():
+            if isinstance(value, dict):
+                bind_update_events(value)
+            elif isinstance(value, list):
+                for item in value:
+                    if isinstance(item, dict):
+                        bind_update_events(item)
+                    # Note: We don't bind to list items here because dynamic lists
+                    # (like notes) handle their own binding internally.
+            # For tk.Variable subclasses (StringVar, BooleanVar)
+            elif hasattr(value, 'trace_add'):
+                value.trace_add('write', lambda *args: window.after_idle(update_preview))
+            # For tk.Widget subclasses (Entry, Combobox)
+            elif hasattr(value, 'bind'):
+                try:
+                    # Bind text entry widgets
+                    value.bind('<KeyRelease>', lambda e: window.after_idle(update_preview))
+                    # Bind combobox selection changes
+                    if isinstance(value, ttk.Combobox):
+                        value.bind('<<ComboboxSelected>>', lambda e: window.after_idle(update_preview))
+                except tk.TclError:
+                    # Ignore errors for widgets that might be destroyed
+                    pass
+
+    bind_update_events(ui_elements)
+    
+    # Initial preview update
+    window.after_idle(update_preview)
+
+    # 9. Start the application (removed bottom button section)
     log.info("Starting main application loop.")
     window.mainloop()
     log.info("Application shut down.")
