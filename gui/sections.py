@@ -12,31 +12,66 @@ from gui.widgets import (
 log = logging.getLogger('app.sections')
 
 
-def create_email_preview_section(parent: tk.Widget, check_email_callback=None) -> tk.Text:
-    """Creates the email preview section with a text widget."""
+def create_email_preview_section(parent: tk.Widget, check_email_callback=None) -> tuple[tk.Text, tk.Text]:
+    """Creates the email preview section with a main text widget and a line number widget."""
     log.debug("Creating email preview section.")
     
     frame = tk.LabelFrame(parent, text="Email Preview", padx=10, pady=10)
     frame.pack(fill="both", expand=True)
     
-    # Create text widget with scrollbar
-    text_frame = ttk.Frame(frame)
-    text_frame.pack(fill="both", expand=True)
-    
+    # Create a container for the text widgets and scrollbar
+    text_container = ttk.Frame(frame)
+    text_container.pack(fill="both", expand=True)
+    text_container.grid_rowconfigure(0, weight=1)
+    text_container.grid_columnconfigure(1, weight=1)
+
+    # Line Numbers Widget
+    line_numbers = tk.Text(
+        text_container,
+        width=3,  # Reduced width
+        padx=3,   # Reduced horizontal padding
+        pady=10,
+        highlightthickness=0,
+        bd=0,
+        font=("Courier", 10),
+        fg="grey",
+        state="disabled",
+        exportselection=0  # Prevent selection from being copied
+    )
+    line_numbers.grid(row=0, column=0, sticky="ns")
+
+    # Make the line numbers unselectable
+    line_numbers.bind("<Button-1>", lambda e: "break")
+    line_numbers.bind("<B1-Motion>", lambda e: "break")
+    line_numbers.bind("<Double-Button-1>", lambda e: "break")
+    line_numbers.bind("<Triple-Button-1>", lambda e: "break")
+
+    # Main Text Widget
     text_widget = tk.Text(
-        text_frame, 
+        text_container, 
         wrap="word", 
         padx=10, 
         pady=10,
         state="disabled",
-        font=("Courier", 10)  # Monospace font for better formatting
+        font=("Courier", 10),
+        highlightthickness=0,
+        bd=0
     )
+    text_widget.grid(row=0, column=1, sticky="nsew")
     
-    scrollbar = ttk.Scrollbar(text_frame, orient="vertical", command=text_widget.yview)
-    text_widget.configure(yscrollcommand=scrollbar.set)
+    # Scrollbar
+    scrollbar = ttk.Scrollbar(text_container, orient="vertical")
+    scrollbar.grid(row=0, column=2, sticky="ns")
     
-    text_widget.pack(side="left", fill="both", expand=True)
-    scrollbar.pack(side="right", fill="y")
+    # Synchronize scrolling
+    def sync_scroll(*args):
+        line_numbers.yview_moveto(args[0])
+        text_widget.yview_moveto(args[0])
+        scrollbar.set(*args)
+
+    text_widget.configure(yscrollcommand=sync_scroll)
+    line_numbers.configure(yscrollcommand=sync_scroll) # Sync both ways
+    scrollbar.configure(command=text_widget.yview)
     
     # Add button frame
     button_frame = ttk.Frame(frame)
@@ -65,7 +100,7 @@ def create_email_preview_section(parent: tk.Widget, check_email_callback=None) -
         )
         check_button.pack(side="left")
     
-    return text_widget
+    return text_widget, line_numbers
 
 def create_manor_section(parent: tk.Widget, manor_options: list[str]) -> tk.StringVar:
     """Creates the manor selection UI and returns the associated StringVar."""
