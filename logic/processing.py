@@ -455,7 +455,8 @@ def format_email_body(data: dict) -> str:
         rank_short = RANK_MAPPINGS.get(sig["Rank"], "")
         name_line = f"{rank_short} {sig['Last']}, {sig['First']}"
         if sig['MI']: name_line += f" {sig['MI']}"
-        # Remove branch reference since it's no longer an input option
+        # Add USAF to the name line
+        name_line += ", USAF"
         parts.append(name_line)
         
         afsc_job = sig["AFSC/Job"]
