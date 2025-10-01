@@ -12,7 +12,62 @@ from gui.widgets import (
 log = logging.getLogger('app.sections')
 
 
-def create_manor_selector(parent: tk.Widget, manor_options: list[str]) -> tk.StringVar:
+def create_email_preview_section(parent: tk.Widget, check_email_callback=None) -> tk.Text:
+    """Creates the email preview section with a text widget."""
+    log.debug("Creating email preview section.")
+    
+    frame = tk.LabelFrame(parent, text="Email Preview", padx=10, pady=10)
+    frame.pack(fill="both", expand=True)
+    
+    # Create text widget with scrollbar
+    text_frame = ttk.Frame(frame)
+    text_frame.pack(fill="both", expand=True)
+    
+    text_widget = tk.Text(
+        text_frame, 
+        wrap="word", 
+        padx=10, 
+        pady=10,
+        state="disabled",
+        font=("Courier", 10)  # Monospace font for better formatting
+    )
+    
+    scrollbar = ttk.Scrollbar(text_frame, orient="vertical", command=text_widget.yview)
+    text_widget.configure(yscrollcommand=scrollbar.set)
+    
+    text_widget.pack(side="left", fill="both", expand=True)
+    scrollbar.pack(side="right", fill="y")
+    
+    # Add button frame
+    button_frame = ttk.Frame(frame)
+    button_frame.pack(fill="x", pady=(10, 0))
+    
+    def copy_preview():
+        content = text_widget.get("1.0", tk.END)
+        parent.clipboard_clear()
+        parent.clipboard_append(content)
+        copy_button.config(text="Copied!")
+        parent.after(2000, lambda: copy_button.config(text="Copy Email"))
+    
+    copy_button = ttk.Button(
+        button_frame, 
+        text="Copy Email", 
+        command=copy_preview
+    )
+    copy_button.pack(side="left", padx=(0, 5))
+    
+    # Add Check Email button if callback is provided
+    if check_email_callback:
+        check_button = ttk.Button(
+            button_frame,
+            text="Check Email",
+            command=check_email_callback
+        )
+        check_button.pack(side="left")
+    
+    return text_widget
+
+def create_manor_section(parent: tk.Widget, manor_options: list[str]) -> tk.StringVar:
     """Creates the manor selection UI and returns the associated StringVar."""
     log.debug("Creating manor selector.")
     frame = ttk.Frame(parent)
@@ -23,15 +78,32 @@ def create_manor_selector(parent: tk.Widget, manor_options: list[str]) -> tk.Str
     manor_combobox.pack(side="left")
     return manor_var
 
-def create_cq_team_section(parent: tk.Widget, roles: list[str]) -> dict:
-    """Creates the entire CQ Team section UI."""
+def create_airman_leaders_section(parent: tk.Widget, roles: list[str]) -> dict:
+    """Creates the AL Team section UI."""
+    log.debug("Creating AL Team section.")
+    frame = tk.LabelFrame(parent, text="Airman Leaders")
+    frame.pack(padx=10, pady=10, fill="both", expand=True)
+    entries_dict = {}
+
+    for role in roles:
+        log.debug(f"Creating single person UI for AL role: {role}")
+        role_frame = ttk.LabelFrame(frame, text=role)
+        role_frame.pack(pady=5, padx=5, fill="x")
+        person_entries = create_person_entry_fields(role_frame)
+        entries_dict[role] = person_entries
+        layout_widgets_in_grid(role_frame, person_entries)
+
+    return entries_dict
+
+def create_charge_quarters_section(parent: tk.Widget, roles: list[str]) -> dict:
+    """Creates the CQ Team section UI."""
     log.debug("Creating CQ Team section.")
-    frame = tk.LabelFrame(parent, text="CQ Team")
+    frame = tk.LabelFrame(parent, text="Charge of Quarters")
     frame.pack(padx=10, pady=10, fill="both", expand=True)
     entries_dict = {}
 
     def create_single_person_role_ui(role: str):
-        log.debug(f"Creating single person UI for role: {role}")
+        log.debug(f"Creating single person UI for CQ role: {role}")
         role_frame = ttk.LabelFrame(frame, text=role)
         role_frame.pack(pady=5, padx=5, fill="x")
         person_entries = create_person_entry_fields(role_frame)
@@ -39,7 +111,7 @@ def create_cq_team_section(parent: tk.Widget, roles: list[str]) -> dict:
         layout_widgets_in_grid(role_frame, person_entries)
 
     def create_multi_person_role_ui(role: str):
-        log.debug(f"Creating multi-person UI for role: {role}")
+        log.debug(f"Creating multi-person UI for CQ role: {role}")
         role_frame = ttk.LabelFrame(frame, text=role)
         role_frame.pack(pady=5, padx=5, fill="x")
         container = ttk.Frame(role_frame)
@@ -54,9 +126,26 @@ def create_cq_team_section(parent: tk.Widget, roles: list[str]) -> dict:
             entries_dict[role].append(person_entries)
             layout_widgets_in_grid(row_frame, person_entries)
 
-        add_button = ttk.Button(role_frame, text=f"Add {role.split()[-1]}", command=add_new_person_row)
-        add_button.pack(side="left", padx=5, pady=(5, 0))
-        add_new_person_row()
+        def remove_last_runner():
+            if len(entries_dict[role]) <= 1:
+                return  # Keep at least one runner
+            if entries_dict[role]:
+                log.debug(f"Removing last runner from {role}.")
+                last_entries = entries_dict[role].pop()
+                # Find one widget to get the parent frame from
+                any_widget = next(iter(last_entries.values()))
+                any_widget.master.destroy()
+
+        button_frame = ttk.Frame(role_frame)
+        button_frame.pack(fill="x", pady=(5, 0))
+
+        add_button = ttk.Button(button_frame, text=f"Add {role.split()[-1]}", command=add_new_person_row)
+        add_button.pack(side="left", padx=5)
+
+        remove_button = ttk.Button(button_frame, text="Remove Runner", command=remove_last_runner)
+        remove_button.pack(side="left", padx=5)
+
+        add_new_person_row()  # Start with one runner
 
     for role in roles:
         if role == "CQ Runner":
@@ -80,11 +169,19 @@ def create_dynamic_entry_section(parent: tk.Widget, title: str, widget_factory: 
         log.debug(f"Adding new row in {title} section.")
         nonlocal rows 
         rows += 1
-        row_frame = ttk.Frame(container)
-        row_frame.pack(fill="x", pady=2)
-        entry_widgets = widget_factory(row_frame)
+        row_frame = ttk.LabelFrame(container, text=f"Entry #{rows}")
+        row_frame.pack(fill="x", pady=2, padx=5)
+        
+        # Create a sub-frame for the top row of widgets
+        top_row_frame = ttk.Frame(row_frame)
+        top_row_frame.pack(fill="x", expand=True)
+        
+        entry_widgets = widget_factory(top_row_frame, row_frame)
         entries_list.append(entry_widgets)
-        layout_function(row_frame, entry_widgets)
+        
+        # Layout only the widgets intended for the top row
+        top_row_widgets = {k: v for k, v in entry_widgets.items() if k != "Reason"}
+        layout_function(top_row_frame, top_row_widgets)
 
     add_button = ttk.Button(frame, text=add_button_text, command=add_new_row)
     add_button.pack(side="left", padx=5, pady=(5, 0))
@@ -97,8 +194,11 @@ def create_dynamic_entry_section(parent: tk.Widget, title: str, widget_factory: 
             rows -= 1
             log.debug(f"Removing last row in {title} section.")
             last_widgets = entries_list.pop()
-            for widget in last_widgets.values():
-                widget.master.destroy()
+            # The master of the widgets is the LabelFrame for the row
+            if last_widgets:
+                # Find one widget to get the master from
+                any_widget = next(iter(last_widgets.values()))
+                any_widget.master.master.destroy()
                 
     remove_button = ttk.Button(frame, text="Remove Last", command=remove_last_row)
     remove_button.pack(side="left", padx=5, pady=(5, 0))
@@ -106,29 +206,7 @@ def create_dynamic_entry_section(parent: tk.Widget, title: str, widget_factory: 
     add_new_row()
     return entries_list
 
-def create_red_card_late_entry_widgets(parent: tk.Widget) -> dict:
-    """Factory for widgets in a red card late entry row."""
-    person_widgets = create_person_entry_fields(parent)
-    other_widgets = {
-        "Room": tk.Entry(parent, width=6),
-        "Time": create_combobox(parent, tk.StringVar(parent), ['0900', '1200', '1500', '1800', '2100'], 5),
-        "Type": create_combobox(parent, tk.StringVar(parent), Constants.redcard_late_types, 8),
-        "Reason": tk.Entry(parent, width=20)
-    }
-    return {**person_widgets, **other_widgets}
-
-def create_late_entry_widgets(parent: tk.Widget) -> dict:
-    """Factory for widgets in a standard late entry row."""
-    person_widgets = create_person_entry_fields(parent)
-    type_var = tk.StringVar(parent, value='Late Turn-in')
-    other_widgets = {
-        "Room": tk.Entry(parent, width=6),
-        "Time": create_combobox(parent, tk.StringVar(parent), ['0000', '2200'], 5),
-        "Reason": tk.Entry(parent, width=20)
-    }
-    return {**person_widgets, **other_widgets}
-
-def create_notes_section(parent: tk.Widget) -> tuple[tk.BooleanVar, tk.StringVar, list]:
+def create_notes_section(parent: tk.Widget, update_callback=None) -> tuple[tk.BooleanVar, tk.StringVar, list]:
     """
     Creates the notes section UI.
     
@@ -167,16 +245,24 @@ def create_notes_section(parent: tk.Widget) -> tuple[tk.BooleanVar, tk.StringVar
         entry = ttk.Entry(row)
         entry.pack(side="left", fill="x", expand=True)
         notes_entries.append(entry)
+        
+        # Bind update callback to new entry if provided
+        if update_callback:
+            entry.bind('<KeyRelease>', lambda e: parent.after_idle(update_callback))
     
     def remove_last_note_field():
         nonlocal rows 
-        if rows == 1:
+        if rows <= 1: # Always keep at least one note field
             return
         if notes_entries:
             log.debug("Removing last note field.")
+            rows -= 1
             last_entry = notes_entries.pop()
             last_entry.master.destroy()
             notes_container.update_idletasks()
+            # Trigger update after removal
+            if update_callback:
+                parent.after_idle(update_callback)
     
     button_row = ttk.Frame(frame)
     button_row.grid(row=3, column=0, columnspan=2, sticky="w", padx=5, pady=(5, 0))
@@ -198,13 +284,14 @@ def create_signature_section(parent: tk.Widget) -> dict:
 
     widgets = {
         "Rank": create_combobox(frame, tk.StringVar(frame), Constants.rank_options, 12),
-        "Last": tk.Entry(frame, width=15), "First": tk.Entry(frame, width=15), "MI": tk.Entry(frame, width=3),
-        "Branch": create_combobox(frame, tk.StringVar(frame), Constants.branch_options, 7),
-        "AFSC/Job": create_combobox(frame, tk.StringVar(frame), Constants.job_options, 25),
+        "Last": tk.Entry(frame, width=15), 
+        "First": tk.Entry(frame, width=15),
+        "MI": tk.Entry(frame, width=3),
         "Squadron": create_combobox(frame, tk.StringVar(frame), Constants.squadron_options, 7),
+        "AFSC/Job": create_combobox(frame, tk.StringVar(frame), Constants.job_options, 30),
     }
 
-    layout_map = [("Rank", "Last", "First", "MI"), ("Branch", "AFSC/Job"), ("Squadron",)]
+    layout_map = [("Rank", "Last", "First", "MI"), ("Squadron", "AFSC/Job")]
     for r, row_keys in enumerate(layout_map):
         col = 0
         for key in row_keys:
